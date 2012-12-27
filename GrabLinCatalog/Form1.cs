@@ -8,6 +8,8 @@ using System.Windows.Forms;
 using System.Threading;
 using HtmlAgilityPack;
 using System.Xml;
+using System.Data.SqlClient;
+using System.Configuration;
 
 namespace GrabLinCatalog
 {
@@ -109,16 +111,114 @@ namespace GrabLinCatalog
 
             foreach (string URL in ProductURLs)
             {
-                sb.Append(URL + "\r\n");
+                if (GetProduct(URL)!= null)
+                {
+                    sb.Append("Success Getting" + URL + "\r\n");
+                    InsertProductIntoDB(GetProduct(URL));
+                }
+                else
+                {
+                    sb.Append("Failed Getting" + URL + "\r\n");
+                };
+
             }
 
-            textBox1.Text = sb.ToString();
+            textBox1.AppendText (sb.ToString());
 
             //once we have the array to call of all urls, 
             //we now need to parse for each product and 
             //load into a db.
 
         }
+
+        private int InsertProductIntoDB(Product aProduct)
+        {
+
+            //connect to SQL
+            SqlConnection myConnection = new SqlConnection();
+
+            //get connection string from app.config file
+            myConnection.ConnectionString = ConfigurationManager.AppSettings["Target"].ToString();
+                //"Data Source=(localdb)\\Projects;Initial Catalog=LincatLocalDB;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False";
+            //ConfigurationManager.ConnectionStrings["ConnectionString"].ToString();
+
+            try{
+                myConnection.Open();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+                return 1;
+            }
+
+            //setting up each of the parameters from the Product that was submitted
+ 
+            SqlCommand myCommand = new SqlCommand("INSERT INTO LinCatProductsTable (Model, Range, Description, Height, Width, Depth, Power, Fuel) " +
+                "VALUES (@ModelParam, @RangeParam, @DescriptionParam, @HeightParam, @WidthParam, @DepthParam, @PowerParam, @FuelParam)", myConnection);
+
+                //"VALUES (@ModelParam, 'test', 'test', '1', '2', '3', 'test' , 'test')", myConnection);
+                                    
+                
+            myCommand.Parameters.Add("@ModelParam", SqlDbType.NVarChar, 100);
+            myCommand.Parameters["@ModelParam"].Value = aProduct.Model;
+
+            myCommand.Parameters.Add("@RangeParam", SqlDbType.NVarChar, 100);
+            myCommand.Parameters["@RangeParam"].Value = aProduct.Range;
+
+            myCommand.Parameters.Add("@DescriptionParam", SqlDbType.NVarChar);
+            myCommand.Parameters["@DescriptionParam"].Value = aProduct.Description;
+
+            myCommand.Parameters.Add("@HeightParam", SqlDbType.Int);
+            myCommand.Parameters["@HeightParam"].Value = aProduct.height;
+
+            myCommand.Parameters.Add("@WidthParam", SqlDbType.Int);
+            myCommand.Parameters["@WidthParam"].Value = aProduct.width;
+            
+            myCommand.Parameters.Add("@DepthParam", SqlDbType.Int);
+            myCommand.Parameters["@DepthParam"].Value = aProduct.depth;
+            
+            myCommand.Parameters.Add("@PowerParam", SqlDbType.NVarChar, 50);
+            myCommand.Parameters["@PowerParam"].Value = aProduct.power;
+
+            myCommand.Parameters.Add("@FuelParam", SqlDbType.NVarChar, 50);
+            myCommand.Parameters["@FuelParam"].Value = aProduct.powerType;
+
+            /*
+            SqlParameter ModelParam = new SqlParameter("@ModelParam", SqlDbType.NVarChar, 100);
+            ModelParam.Value = aProduct.Model;
+            
+            SqlParameter RangeParam = new SqlParameter("@RangeParam", SqlDbType.NVarChar, 100);
+            RangeParam.Value = aProduct.Range;
+
+            SqlParameter DescriptionParam = new SqlParameter("@DescriptionParam", SqlDbType.NVarChar);
+            DescriptionParam.Value = aProduct.Description;
+
+            SqlParameter HeightParam = new SqlParameter("@HeightParam", SqlDbType.Int);
+            HeightParam.Value = aProduct.height;
+
+            SqlParameter WidthParam = new SqlParameter("@WidthParam", SqlDbType.Int);
+            WidthParam.Value = aProduct.width;
+
+            SqlParameter DepthParam = new SqlParameter("@DepthParam", SqlDbType.Int);
+            DepthParam.Value = aProduct.depth;
+
+            SqlParameter PowerParam = new SqlParameter("@PowerParam", SqlDbType.NVarChar, 50);
+            PowerParam.Value = aProduct.power;
+
+            SqlParameter FuelParam = new SqlParameter("@FuelParam", SqlDbType.NVarChar, 50);
+            FuelParam.Value = aProduct.powerType;
+           */
+
+
+            myCommand.ExecuteNonQuery();
+
+
+            //close up the connection
+
+
+            return 0;
+        }
+
 
         private bool AreThereProducts(string URL)
         {
@@ -171,9 +271,64 @@ namespace GrabLinCatalog
 
         }
 
-        private void UpdateProductList(string URL)
+        private Product GetProduct(string URL)
         {
 
+            //First get a page from the lincat website....
+            HtmlWeb HW = new HtmlWeb();
+            Product SingleProduct = new Product();
+
+            var document = HW.Load(URL);
+
+            //17.08 - var ProdTags = document.DocumentNode.SelectNodes("//table[@id='product_table']//td//@href");
+            var ProdTags = document.DocumentNode.SelectNodes("//section[@id='content']//table//tbody//td");
+
+            if (ProdTags != null)
+            {
+                StringBuilder sb = new StringBuilder();
+
+                int i = 0;
+
+                foreach (var tag in ProdTags)
+                {
+                    i++;
+                    switch (i)
+                    {
+                        case 1:
+                            SingleProduct.Model = tag.InnerText;
+                            break;
+                        case 2:
+                            SingleProduct.Range = tag.InnerText;
+                            break;
+                        case 3:
+                            SingleProduct.Description = tag.InnerText;
+                            break;
+                        case 4:
+                            SingleProduct.height = Convert.ToInt32(tag.InnerText);
+                            break;
+                        case 5:
+                           SingleProduct.width = Convert.ToInt32(tag.InnerText);
+                            break;
+                        case 6:
+                            SingleProduct.depth = Convert.ToInt32(tag.InnerText);
+                            break;
+                        case 7:
+                            SingleProduct.power = tag.InnerText;
+                            break;
+                        case 8:
+                            SingleProduct.powerType = tag.InnerText;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    sb.Append("\r\n (" + i + ")" + tag.InnerText);
+                }
+                textBox1.AppendText(sb.ToString());
+            }
+
+            
+            return SingleProduct;
         }
 
 
