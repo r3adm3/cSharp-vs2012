@@ -153,8 +153,8 @@ namespace GrabLinCatalog
 
             //setting up each of the parameters from the Product that was submitted
  
-            SqlCommand myCommand = new SqlCommand("INSERT INTO LinCatProductsTable (Model, Range, Description, Height, Width, Depth, Power, Fuel) " +
-                "VALUES (@ModelParam, @RangeParam, @DescriptionParam, @HeightParam, @WidthParam, @DepthParam, @PowerParam, @FuelParam)", myConnection);
+            SqlCommand myCommand = new SqlCommand("INSERT INTO LinCatProductsTable (Model, Range, Description, Height, Width, Depth, Power, Fuel, notes) " +
+                "VALUES (@ModelParam, @RangeParam, @DescriptionParam, @HeightParam, @WidthParam, @DepthParam, @PowerParam, @FuelParam, @notesParam)", myConnection);
 
                 //"VALUES (@ModelParam, 'test', 'test', '1', '2', '3', 'test' , 'test')", myConnection);
                                     
@@ -183,37 +183,22 @@ namespace GrabLinCatalog
             myCommand.Parameters.Add("@FuelParam", SqlDbType.NVarChar, 50);
             myCommand.Parameters["@FuelParam"].Value = aProduct.powerType;
 
-            /*
-            SqlParameter ModelParam = new SqlParameter("@ModelParam", SqlDbType.NVarChar, 100);
-            ModelParam.Value = aProduct.Model;
-            
-            SqlParameter RangeParam = new SqlParameter("@RangeParam", SqlDbType.NVarChar, 100);
-            RangeParam.Value = aProduct.Range;
-
-            SqlParameter DescriptionParam = new SqlParameter("@DescriptionParam", SqlDbType.NVarChar);
-            DescriptionParam.Value = aProduct.Description;
-
-            SqlParameter HeightParam = new SqlParameter("@HeightParam", SqlDbType.Int);
-            HeightParam.Value = aProduct.height;
-
-            SqlParameter WidthParam = new SqlParameter("@WidthParam", SqlDbType.Int);
-            WidthParam.Value = aProduct.width;
-
-            SqlParameter DepthParam = new SqlParameter("@DepthParam", SqlDbType.Int);
-            DepthParam.Value = aProduct.depth;
-
-            SqlParameter PowerParam = new SqlParameter("@PowerParam", SqlDbType.NVarChar, 50);
-            PowerParam.Value = aProduct.power;
-
-            SqlParameter FuelParam = new SqlParameter("@FuelParam", SqlDbType.NVarChar, 50);
-            FuelParam.Value = aProduct.powerType;
-           */
-
+            myCommand.Parameters.Add("@notesParam", SqlDbType.NVarChar);
+            myCommand.Parameters["@notesParam"].Value = aProduct.otherNotes;
 
             myCommand.ExecuteNonQuery();
 
 
             //close up the connection
+            try
+            {
+                myConnection.Close();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+                return 1;
+            }
 
 
             return 0;
@@ -282,13 +267,39 @@ namespace GrabLinCatalog
 
             //17.08 - var ProdTags = document.DocumentNode.SelectNodes("//table[@id='product_table']//td//@href");
             var ProdTags = document.DocumentNode.SelectNodes("//section[@id='content']//table//tbody//td");
+            var SpanTags = document.DocumentNode.SelectNodes("//section[@id='content']//p//span");
+            var ImgTags = document.DocumentNode.SelectNodes("//div[@id='product_image']//img");
+            var pdfTags = document.DocumentNode.SelectNodes("//li[@class='pdf']//a");
 
             if (ProdTags != null)
             {
                 StringBuilder sb = new StringBuilder();
+                StringBuilder SpanSb = new StringBuilder();
 
                 int i = 0;
+                
+                foreach (var tag in SpanTags)
+                {
+                    //gets the bullet notes for the product
+                    SpanSb.Append("\r\n - " + tag.InnerText);
+                }
 
+                foreach (var tag in ImgTags)
+                {
+                    //gets the url for the image on the page
+                    SpanSb.Append("\r\n   + " + tag.Attributes["SRC"].Value.ToString());
+                }
+
+                foreach (var tag in pdfTags)
+                {
+                    //gets each of the pdfs for the product
+                    SpanSb.Append("\r\n   + " + tag.Attributes["HREF"].Value.ToString());
+                }
+
+                SingleProduct.otherNotes = SpanSb.ToString();
+                textBox1.AppendText(SpanSb.ToString());
+
+                //enumerates the table, and fills up aProduct object.
                 foreach (var tag in ProdTags)
                 {
                     i++;
@@ -322,13 +333,23 @@ namespace GrabLinCatalog
                             break;
                     }
 
-                    sb.Append("\r\n (" + i + ")" + tag.InnerText);
+                    //sb.Append("\r\n (" + i + ")" + tag.InnerText);
                 }
                 textBox1.AppendText(sb.ToString());
             }
 
             
             return SingleProduct;
+        }
+
+        private void GetProductContent(string URL)
+        {
+            //create folder
+
+            //get content @URL
+
+            return;
+
         }
 
 
