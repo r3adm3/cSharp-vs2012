@@ -10,6 +10,8 @@ using HtmlAgilityPack;
 using System.Xml;
 using System.Data.SqlClient;
 using System.Configuration;
+using System.IO;
+using System.Net;
 
 namespace GrabLinCatalog
 {
@@ -84,7 +86,7 @@ namespace GrabLinCatalog
         private void button1_Click(object sender, EventArgs e)
         {
             //just a bit of UI
-            this.textBox1.Text = "Calculating...";
+            this.textBox1.Text = "Starting...";
 
             //change the buttons, so the user can only click on what he should do. 
             //he can't click go twice, and the cancel button gets ungreyed. 
@@ -104,17 +106,19 @@ namespace GrabLinCatalog
                 if (AreThereProducts(URL))
                 {
                     //remove this break to do a full run. 
-                    break;
+                    //break;
                 };
             }
             
 
             foreach (string URL in ProductURLs)
             {
-                if (GetProduct(URL)!= null)
+                Product myProduct = GetProduct(URL);
+                if (myProduct != null)
                 {
                     sb.Append("Success Getting" + URL + "\r\n");
-                    InsertProductIntoDB(GetProduct(URL));
+                    InsertProductIntoDB(myProduct);
+                    GetProductContent(URL, myProduct.Model);
                 }
                 else
                 {
@@ -123,7 +127,7 @@ namespace GrabLinCatalog
 
             }
 
-            textBox1.AppendText (sb.ToString());
+            //textBox1.AppendText (sb.ToString());
 
             //once we have the array to call of all urls, 
             //we now need to parse for each product and 
@@ -186,8 +190,15 @@ namespace GrabLinCatalog
             myCommand.Parameters.Add("@notesParam", SqlDbType.NVarChar);
             myCommand.Parameters["@notesParam"].Value = aProduct.otherNotes;
 
-            myCommand.ExecuteNonQuery();
+            if (myCommand.ExecuteNonQuery().Equals(1))
+            {
 
+                textBox1.AppendText("\r\nInserted into DB Product: " + aProduct.Model);
+            }
+            else
+            {
+                textBox1.AppendText("\r\nFailed Insert DB Product: " + aProduct.Model);
+            }
 
             //close up the connection
             try
@@ -284,20 +295,7 @@ namespace GrabLinCatalog
                     SpanSb.Append("\r\n - " + tag.InnerText);
                 }
 
-                foreach (var tag in ImgTags)
-                {
-                    //gets the url for the image on the page
-                    SpanSb.Append("\r\n   + " + tag.Attributes["SRC"].Value.ToString());
-                }
 
-                foreach (var tag in pdfTags)
-                {
-                    //gets each of the pdfs for the product
-                    SpanSb.Append("\r\n   + " + tag.Attributes["HREF"].Value.ToString());
-                }
-
-                SingleProduct.otherNotes = SpanSb.ToString();
-                textBox1.AppendText(SpanSb.ToString());
 
                 //enumerates the table, and fills up aProduct object.
                 foreach (var tag in ProdTags)
@@ -335,19 +333,72 @@ namespace GrabLinCatalog
 
                     //sb.Append("\r\n (" + i + ")" + tag.InnerText);
                 }
-                textBox1.AppendText(sb.ToString());
+               
+                foreach (var tag in ImgTags)
+                {
+                    string link = tag.Attributes["SRC"].Value.ToString();
+                    //gets the url for the image on the page
+                    SpanSb.Append("\r\n   + " + link);
+                    if (link.ToLower().Contains("jpg"))
+                    {
+                        GetProductContent(link, SingleProduct.Model);
+                    }
+                }
+
+                foreach (var tag in pdfTags)
+                {
+                    string link = tag.Attributes["HREF"].Value.ToString();
+                    //gets each of the pdfs for the product
+                    SpanSb.Append("\r\n   + " + link);
+                    //only get content if it's a pdf
+                    if ( link.ToLower().Contains("pdf") )
+                    {
+                        GetProductContent(link, SingleProduct.Model);
+                    }
+
+                }
+
+                SingleProduct.otherNotes = SpanSb.ToString();
+                //textBox1.AppendText(SpanSb.ToString());
+
+                //textBox1.AppendText(sb.ToString());
             }
 
             
             return SingleProduct;
         }
 
-        private void GetProductContent(string URL)
+        private void GetProductContent(string URL, string product)
         {
+            string RootFolder = textBox2.Text + "\\";
+
             //create folder
-
+            try
+            {
+                Directory.CreateDirectory(RootFolder + product);
+            }
+            catch
+            {
+                MessageBox.Show("Failed to create folders");
+            }
+            
+            //filename
+            string filename = RootFolder + product + "\\" + URL.Substring(URL.LastIndexOf("/") + 1);
+            
+            //MessageBox.Show(filename);
+            
             //get content @URL
-
+            WebClient webClient = new WebClient();
+            try
+            {
+                webClient.DownloadFile("http://www.lincat.co.uk" + URL, filename);
+                textBox1.AppendText("\r\nDownloaded " + URL);
+            }
+            catch
+            {
+                textBox1.AppendText("\r\nFailed Downloading " + URL);
+                //ignore
+            }
             return;
 
         }
@@ -386,6 +437,7 @@ namespace GrabLinCatalog
             this.backgroundWorker1.CancelAsync();
             this.button1.Enabled = true;
             this.button2.Enabled = false;
+            textBox1.Text = "";
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
