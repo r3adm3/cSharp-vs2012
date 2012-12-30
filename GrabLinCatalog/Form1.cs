@@ -86,7 +86,7 @@ namespace GrabLinCatalog
         private void button1_Click(object sender, EventArgs e)
         {
             //just a bit of UI
-            this.textBox1.Text = "Starting...";
+            this.textBox1.Text = "Starting..." + DateTime.Now.ToString();
 
             //change the buttons, so the user can only click on what he should do. 
             //he can't click go twice, and the cancel button gets ungreyed. 
@@ -102,7 +102,7 @@ namespace GrabLinCatalog
             foreach (string URL in GetURLs())
             {
                 //here we want to load all category urls into an array/collection of some sort. 
-                //sb.Append(URL + " " + AreThereProducts(URL).ToString() + "\r\n");
+                //sb.Append("\r\n" + URL + " " + AreThereProducts(URL).ToString());
                 if (AreThereProducts(URL))
                 {
                     //remove this break to do a full run. 
@@ -116,19 +116,19 @@ namespace GrabLinCatalog
                 Product myProduct = GetProduct(URL);
                 if (myProduct != null)
                 {
-                    sb.Append("Success Getting" + URL + "\r\n");
+                    sb.Append("Success Getting " + URL + "\r\n");
                     InsertProductIntoDB(myProduct);
-                    GetProductContent(URL, myProduct.Model);
+                    //GetProductContent(URL, myProduct.Model);
                 }
                 else
                 {
-                    sb.Append("Failed Getting" + URL + "\r\n");
+                    sb.Append("Failed Getting " + URL + "\r\n");
                 };
 
             }
 
-            //textBox1.AppendText (sb.ToString());
-
+            textBox1.AppendText (sb.ToString());
+            textBox1.AppendText("\r\nFinished: " + DateTime.Now.ToString());
             //once we have the array to call of all urls, 
             //we now need to parse for each product and 
             //load into a db.
@@ -313,14 +313,32 @@ namespace GrabLinCatalog
                             SingleProduct.Description = tag.InnerText;
                             break;
                         case 4:
+                            try{
                             SingleProduct.height = Convert.ToInt32(tag.InnerText);
+                            }
+                            catch{
+                                SingleProduct.height = 0;
+                            }
                             break;
                         case 5:
+                            try
+                            {
                            SingleProduct.width = Convert.ToInt32(tag.InnerText);
+                            }
+                            catch
+                            {
+                                SingleProduct.width = 0;
+                            }
+                            
                             break;
                         case 6:
+                            try
+                            {
                             SingleProduct.depth = Convert.ToInt32(tag.InnerText);
-                            break;
+                            }
+                            catch{
+                                SingleProduct.depth = 0;
+                            }break;
                         case 7:
                             SingleProduct.power = tag.InnerText;
                             break;
@@ -333,31 +351,36 @@ namespace GrabLinCatalog
 
                     //sb.Append("\r\n (" + i + ")" + tag.InnerText);
                 }
-               
-                foreach (var tag in ImgTags)
+
+                if (ImgTags != null)
                 {
-                    string link = tag.Attributes["SRC"].Value.ToString();
-                    //gets the url for the image on the page
-                    SpanSb.Append("\r\n   + " + link);
-                    if (link.ToLower().Contains("jpg"))
+                    foreach (var tag in ImgTags)
                     {
-                        GetProductContent(link, SingleProduct.Model);
+                        string link = tag.Attributes["SRC"].Value.ToString();
+                        //gets the url for the image on the page
+                        SpanSb.Append("\r\n   + " + link);
+                        if (link.ToLower().Contains("jpg"))
+                        {
+                            GetProductContent(link, SingleProduct.Model);
+                        }
                     }
                 }
 
-                foreach (var tag in pdfTags)
+                if (pdfTags != null)
                 {
-                    string link = tag.Attributes["HREF"].Value.ToString();
-                    //gets each of the pdfs for the product
-                    SpanSb.Append("\r\n   + " + link);
-                    //only get content if it's a pdf
-                    if ( link.ToLower().Contains("pdf") )
+                    foreach (var tag in pdfTags)
                     {
-                        GetProductContent(link, SingleProduct.Model);
+                        string link = tag.Attributes["HREF"].Value.ToString();
+                        //gets each of the pdfs for the product
+                        SpanSb.Append("\r\n   + " + link);
+                        //only get content if it's a pdf
+                        if (link.ToLower().Contains("pdf"))
+                        {
+                            GetProductContent(link, SingleProduct.Model);
+                        }
+
                     }
-
                 }
-
                 SingleProduct.otherNotes = SpanSb.ToString();
                 //textBox1.AppendText(SpanSb.ToString());
 
