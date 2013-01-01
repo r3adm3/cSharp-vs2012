@@ -288,11 +288,13 @@ namespace GrabLinCatalog
                 StringBuilder SpanSb = new StringBuilder();
 
                 int i = 0;
-                
-                foreach (var tag in SpanTags)
+                if (SpanTags != null)
                 {
-                    //gets the bullet notes for the product
-                    SpanSb.Append("\r\n - " + tag.InnerText);
+                    foreach (var tag in SpanTags)
+                    {
+                        //gets the bullet notes for the product
+                        SpanSb.Append("\r\n - " + tag.InnerText);
+                    }
                 }
 
 
