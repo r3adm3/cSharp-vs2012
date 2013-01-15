@@ -1,0 +1,70 @@
+﻿@model Product.Model.Product
+
+@{
+    ViewBag.Title = "Details";
+}
+
+<h2>Details</h2>
+
+<fieldset>
+    <legend>Product</legend>
+
+    <div class="display-label">Model</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Model)
+    </div>
+
+    <div class="display-label">Range</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Range)
+    </div>
+
+    <div class="display-label">Description</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Description)
+    </div>
+
+    <div class="display-label">Height</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Height)
+    </div>
+
+    <div class="display-label">Width</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Width)
+    </div>
+
+    <div class="display-label">Depth</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Depth)
+    </div>
+
+    <div class="display-label">Power</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Power)
+    </div>
+
+    <div class="display-label">Fuel</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Fuel)
+    </div>
+
+    <div class="display-label">Notes</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Notes)
+    </div>
+
+    <div class="display-label">Category</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.Category)
+    </div>
+
+    <div class="display-label">SubCategory</div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.SubCategory)
+    </div>
+</fieldset>
+<p>
+    @Html.ActionLink("Edit", "Edit", new { id=Model.Id }) |
+    @Html.ActionLink("Back to List", "Index")
+</p>
